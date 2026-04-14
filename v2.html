@@ -426,12 +426,13 @@
             }
             @page {
                 size: A4 landscape;
-                margin: 20mm; /* 물리적 인쇄 여백 넉넉히 확보 */
+                margin: 15mm; 
             }
             body {
                 background: #fff !important;
-                margin: 0;
-                padding: 0;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
             }
             /* UI 요소 숨김 */
             .no-print, #page1, #draw-section, #pending-section, .modal-overlay, .top-controls {
@@ -440,12 +441,12 @@
             #page2 {
                 display: flex !important;
                 flex-direction: column-reverse !important; /* 교탁에서 바라보는 시점 (칠판이 아래로) */
-                width: 95% !important; /* 100% -> 95%로 줄여서 잘림 방지 */
+                width: 100% !important; 
                 max-width: none !important;
                 height: auto;
-                padding: 10px !important; /* 안쪽 여백 추가 */
-                margin: 0 auto !important; /* 가운데 정렬 */
-                gap: 20px; /* 그리드와 칠판 사이 간격 */
+                padding: 30px !important; /* 안쪽으로 확 밀어 넣는 강력한 여백 */
+                margin: 0 !important; 
+                gap: 30px !important;
                 box-sizing: border-box !important;
             }
             #blackboard {
@@ -466,8 +467,9 @@
                 gap: 0 !important;
                 border-top: 2px solid #000 !important;
                 border-left: 2px solid #000 !important;
-                transform: rotate(180deg) !important; /* 좌석 전체 180도 회전 */
-                transform-origin: center center;
+                transform: rotate(180deg) scale(0.95) !important; /* 배율 축소 및 180도 회전 */
+                transform-origin: center center !important; /* 중심축 강제 고정 */
+                margin: 20px 0 !important; /* 상하 여유 공간 추가 확보 */
                 box-sizing: border-box !important;
             }
             /* 인쇄 시 성별 색상 및 이모티콘 모두 무시하고 기본 표 모양으로 고정 */
@@ -480,6 +482,7 @@
                 border-radius: 0 !important;
                 box-shadow: none !important;
                 transform: rotate(-180deg) !important; /* 글자는 정방향으로 재회전 (핵심!) */
+                transform-origin: center center !important; /* 좌석 내 중심축 명시 */
                 min-height: 80px !important;
                 page-break-inside: avoid;
                 box-sizing: border-box !important;
