@@ -452,12 +452,13 @@
                 width: 100% !important;
                 background-color: #fff !important;
                 color: #000 !important;
-                border: 2px solid #000 !important;
+                border: 3px solid #000 !important; /* 칠판 테두리도 3px로 든든하게 통일 */
                 box-shadow: none !important;
                 border-radius: 0 !important;
                 padding: 10px !important;
                 margin: 0 !important;
                 font-size: 24pt !important;
+                box-sizing: border-box !important;
             }
             #blackboard::after { display: none !important; }
             
@@ -467,25 +468,28 @@
                 flex-wrap: wrap-reverse !important; /* 행(Row)을 아래에서 위로 역순 배치 */
                 flex-direction: row-reverse !important; /* 열(Column)을 우측에서 좌측으로 역순 배치 */
                 width: 100% !important;
-                gap: 0 !important;
-                border-top: 2px solid #000 !important;
-                border-left: 2px solid #000 !important;
+                
+                /* [핵심] 배경색 gap 트릭으로 테두리 잘림 원천 차단 */
+                background-color: #000 !important; /* 그리드 전체 배경 검은색 (선 역할) */
+                gap: 2px !important; /* 선 두께 2px */
+                border: 3px solid #000 !important; /* 외곽선 3px로 든든하게 */
+                
                 margin: 0 !important; 
-                /* transform 완전 제거됨 */
+                box-sizing: border-box !important;
             }
             /* 인쇄 시 성별 색상 및 이모티콘 모두 무시하고 기본 표 모양으로 고정 */
             .seat, .seat[data-gender="boy"], .seat[data-gender="girl"], .seat.assigned, .seat.x-seat {
-                width: calc(100% / var(--cols)) !important; /* JS에서 넘겨준 열 개수로 정확한 넓이 할당 */
-                background-color: #fff !important;
+                /* gap 너비를 제외하고 정확한 flex 항목 너비 계산 */
+                width: calc((100% - (var(--cols) - 1) * 2px) / var(--cols)) !important; 
+                
+                background-color: #fff !important; /* 좌석 배경은 흰색으로 덮어씌움 */
                 color: #000 !important;
-                border: none !important; 
-                border-right: 2px solid #000 !important;
-                border-bottom: 2px solid #000 !important;
+                border: none !important; /* 기존 개별 테두리 싹 지움 */
                 border-radius: 0 !important;
                 box-shadow: none !important;
                 min-height: 80px !important;
                 page-break-inside: avoid;
-                /* transform 완전 제거됨. 글씨는 자연스럽게 정방향 유지 */
+                box-sizing: border-box !important;
             }
             .seat::after {
                 display: none !important;
