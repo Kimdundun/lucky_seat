@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>두근두근 랜덤 좌석 배치기</title>
+    
+    <!-- 구글 폰트 주아체 임포트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+
+    <style>
+        /* === 전역 설정 === */
+        :root {
+            --bg-color: #FFF6E9;
+            --primary-color: #FFB6B9;
+            --secondary-color: #FAE3D9;
+            --accent-color: #61C0BF;
+            --accent-dark: #4A9A99;
+            --board-color: #2E5A44;
+            --board-border: #8B5A2B;
+            --text-color: #333333;
+            --btn-shadow: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Jua', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* === 공통 UI 요소 === */
+        h1, h2 {
+            color: var(--accent-dark);
+            text-align: center;
+            margin-top: 20px;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.7);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            padding: 12px 24px;
+            color: white;
+            transition: all 0.1s ease;
+            outline: none;
+            box-shadow: 0 var(--btn-shadow) 0 rgba(0,0,0,0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(var(--btn-shadow));
+            box-shadow: 0 0 0 rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            background-color: #ccc !important;
+            box-shadow: 0 var(--btn-shadow) 0 #aaa !important;
+            color: #666 !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-start { background-color: var(--accent-color); font-size: 1.5rem; width: 100%; margin-top: 10px; }
+        .btn-start:hover:not(:disabled) { background-color: #50B0AF; }
+
+        .btn-action { background-color: #FFA5A8; }
+        .btn-action:hover:not(:disabled) { background-color: #FF9497; }
+
+        .btn-secondary { background-color: #BBDED6; color: #333; }
+        .btn-secondary:hover:not(:disabled) { background-color: #AACDCA; }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 3px solid var(--secondary-color);
+            border-radius: 10px;
+            font-size: 1.1rem;
+            background: #fff;
+            outline: none;
+        }
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* === 페이지 1 (설정 화면) === */
+        #page1 {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+            color: var(--accent-dark);
+        }
+        .row-col-inputs, .range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* === 페이지 2 (메인 배치 화면) === */
+        #page2 {
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+            display: none; /* 초기엔 숨김 */
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .top-left-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .date-display {
+            font-size: 1.5rem;
+            color: var(--accent-dark);
+            background: white;
+            padding: 5px 20px;
+            border-radius: 20px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+
+        /* 칠판 영역 */
+        #blackboard {
+            width: 80%;
+            background-color: var(--board-color);
+            color: white;
+            text-align: center;
+            font-size: 2.5rem;
+            padding: 20px;
+            border: 12px solid var(--board-border);
+            border-radius: 15px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        #blackboard::after {
+            content: '';
+            position: absolute;
+            bottom: 5px; right: 20px;
+            width: 40px; height: 15px;
+            background-color: #ddd;
+            border-radius: 3px;
+        }
+
+        /* 뽑기 및 보류 버튼 영역 */
+        #draw-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border: 4px dashed var(--primary-color);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #draw-btn {
+            font-size: 2rem;
+            padding: 15px 40px;
+            background-color: #FFCC5C;
+            color: #333;
+            border-radius: 30px;
+            box-shadow: 0 8px 0 #E5B751;
+            --btn-shadow: 8px;
+        }
+        #draw-btn:hover:not(:disabled) { background-color: #FFD67A; }
+
+        #hold-btn {
+            font-size: 2rem;
+            padding: 10px 25px;
+            background-color: #95A5A6;
+            border-radius: 20px;
+            box-shadow: 0 8px 0 #7F8C8D;
+            --btn-shadow: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #hold-btn:hover:not(:disabled) { background-color: #BDC3C7; }
+
+        #drawn-result {
+            font-size: 1.5rem;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+        }
+        #drawn-result .num {
+            font-size: 4rem;
+            color: var(--accent-dark);
+            line-height: 1;
+        }
+        #drawn-result .name {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+        }
+
+        /* 보류된 학생 대기석 */
+        #pending-section {
+            width: 100%;
+            max-width: 800px;
+            background: #FFF;
+            border: 3px solid var(--secondary-color);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            display: none;
+        }
+        #pending-section h4 {
+            margin: 0 0 10px 0;
+            color: var(--accent-dark);
+            font-size: 1.3rem;
+        }
+        #pending-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 40px;
+        }
+        .pending-student-btn {
+            background-color: #FFE082;
+            color: #333;
+            font-size: 1.2rem;
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 0 #FFCA28;
+            --btn-shadow: 4px;
+        }
+        .pending-student-btn:hover:not(:disabled) { background-color: #FFECB3; }
+
+        /* 좌석 그리드 */
+        #seat-grid {
+            display: grid;
+            gap: 15px;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .seat {
+            background-color: white;
+            border: 3px solid #eee;
+            border-radius: 15px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #e0e0e0;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .seat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 0 #d0d0d0;
+            border-color: var(--accent-color);
+        }
+        .seat:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #d0d0d0;
+        }
+
+        /* 기본 배정 상태 */
+        .seat.assigned {
+            background-color: #E8F6F5;
+            border-color: var(--accent-color);
+            box-shadow: 0 5px 0 var(--accent-dark);
+        }
+        
+        /* ---------------------------------
+           [좌석 성별 시각적 스타일]
+           --------------------------------- */
+        /* 남자 자리 (파란색 계열) */
+        .seat[data-gender="boy"] { border: 4px solid #64B5F6; }
+        .seat.assigned[data-gender="boy"] { background-color: #E3F2FD; box-shadow: 0 5px 0 #42A5F5; }
+        .seat[data-gender="boy"]::after {
+            content: '👦';
+            position: absolute;
+            top: 5px; right: 8px;
+            font-size: 1.1rem;
+        }
+
+        /* 여자 자리 (분홍색 계열) */
+        .seat[data-gender="girl"] { border: 4px solid #F48FB1; }
+        .seat.assigned[data-gender="girl"] { background-color: #FCE4EC; box-shadow: 0 5px 0 #EC407A; }
+        .seat[data-gender="girl"]::after {
+            content: '👧';
+            position: absolute;
+            top: 5px; right: 8px;
+            font-size: 1.1rem;
+        }
+
+        .seat.x-seat {
+            background-color: #F5F5F5;
+            border-color: #ccc !important;
+            box-shadow: none !important;
+            cursor: pointer;
+        }
+        /* X 처리된 자리는 이모티콘 숨기기 */
+        .seat.x-seat::after { display: none !important; }
+        
+        .seat-num { font-size: 2rem; font-weight: bold; color: var(--accent-dark); line-height: 1.2; }
+        .seat-name { font-size: 1.2rem; color: #555; }
+        .seat-x { font-size: 3rem; color: #ccc; }
+
+        /* === 모달 (팝업) === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-content h3 { margin-top: 0; color: var(--accent-dark); font-size: 1.8rem; }
+        .modal-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .modal-options button {
+            width: 100%;
+            font-size: 1.3rem;
+            padding: 15px;
+        }
+
+        /* === 애니메이션 === */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shuffle {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            50% { transform: scale(1) rotate(0deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes pulseAlert {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .anim-shuffle { animation: shuffle 0.1s infinite; color: #ccc !important; }
+        .anim-pop { animation: popIn 0.5s forwards; }
+
+        .end-message {
+            font-size: 3rem;
+            color: #FF5722; 
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+            animation: popIn 0.5s forwards, pulseAlert 2s infinite ease-in-out;
+            font-weight: bold;
+        }
+
+        /* ==============================================================
+           [인쇄 및 PDF 저장용 특수 CSS - 핵심 요구사항] 
+           ============================================================== */
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 15mm;
+            }
+            body {
+                background: #fff !important;
+                margin: 0;
+                padding: 0;
+            }
+            /* UI 요소 숨김 */
+            .no-print, #page1, #draw-section, #pending-section, .modal-overlay, .top-controls {
+                display: none !important;
+            }
+            #page2 {
+                display: flex !important;
+                flex-direction: column-reverse !important; /* 교탁에서 바라보는 시점 (칠판이 아래로) */
+                width: 100% !important;
+                max-width: none !important;
+                height: auto;
+                padding: 0 !important;
+                margin: 0 !important;
+                gap: 20px; /* 그리드와 칠판 사이 간격 */
+            }
+            #blackboard {
+                width: 100% !important;
+                background-color: #fff !important;
+                color: #000 !important;
+                border: 2px solid #000 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 10px !important;
+                margin: 0 !important;
+                font-size: 24pt !important;
+            }
+            #blackboard::after { display: none !important; }
+            #seat-grid {
+                width: 100% !important;
+                gap: 0 !important;
+                border-top: 2px solid #000 !important;
+                border-left: 2px solid #000 !important;
+                transform: rotate(180deg) !important; /* 좌석 전체 180도 회전 */
+                transform-origin: center center;
+            }
+            /* 인쇄 시 성별 색상 및 이모티콘 모두 무시하고 기본 표 모양으로 고정 */
+            .seat, .seat[data-gender="boy"], .seat[data-gender="girl"], .seat.assigned, .seat.x-seat {
+                background-color: #fff !important;
+                color: #000 !important;
+                border: none !important; /* 기본 보더 리셋 */
+                border-right: 2px solid #000 !important;
+                border-bottom: 2px solid #000 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                transform: rotate(-180deg) !important; /* 글자는 정방향으로 재회전 (핵심!) */
+                min-height: 80px !important;
+                page-break-inside: avoid;
+            }
+            .seat::after {
+                display: none !important;
+                content: none !important;
+            }
+            .seat-num { color: #000 !important; font-size: 20pt !important; }
+            .seat-name { color: #000 !important; font-size: 16pt !important; }
+            .seat-x { color: #000 !important; font-size: 24pt !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+         페이지 1: 초기 설정 화면
+         ========================================== -->
+    <div id="page1">
+        <h1>🎈 우리반 자리 배치기 🎈</h1>
+        <br>
+        <div class="input-group">
+            <label>오늘 날짜 (좌석표 인쇄용)</label>
+            <input type="date" id="setup-date">
+        </div>
+
+        <div class="input-group">
+            <label>좌석 크기 (가로 열 × 세로 행)</label>
+            <div class="row-col-inputs">
+                <input type="number" id="setup-cols" value="6" min="1" max="10" placeholder="열 (가로)">
+                <input type="number" id="setup-rows" value="5" min="1" max="10" placeholder="행 (세로)">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>랜덤 번호 범위 (최소 ~ 최대)</label>
+            <div class="range-inputs">
+                <input type="number" id="setup-min" value="1" placeholder="최소 번호">
+                <input type="number" id="setup-max" value="30" placeholder="최대 번호">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>학생 명단 (선택사항, 복사/붙여넣기)</label>
+            <textarea id="setup-students" rows="6" placeholder="예시:&#10;1 홍길동&#10;2 김철수&#10;또는 이름만 줄바꿈하여 입력"></textarea>
+            <small style="color:#777; display:block; margin-top:-10px; margin-bottom:15px;">※ 명단이 없으면 번호만 배정됩니다.</small>
+        </div>
+
+        <button class="btn-start" onclick="startApp()">자리 배치 시작하기!</button>
+    </div>
+
+
+    <!-- ==========================================
+         페이지 2: 메인 배치 화면
+         ========================================== -->
+    <div id="page2">
+        <div class="top-controls no-print">
+            <div class="top-left-buttons">
+                <button class="btn-secondary" onclick="location.reload()">⚙️ 처음으로 (설정)</button>
+                <button id="gender-setup-btn" class="btn-secondary" onclick="toggleGenderMode()">👫 좌석 성별 설정</button>
+            </div>
+            <div class="date-display" id="display-date">2026년 00월 00일</div>
+            <button class="btn-action" onclick="window.print()">🖨️ 좌석표 PDF 저장(인쇄)</button>
+        </div>
+
+        <div id="draw-section" class="no-print">
+            <div class="controls-row">
+                <button id="draw-btn" onclick="drawNumber()">🎲 랜덤 번호 뽑기!</button>
+                <button id="hold-btn" onclick="holdCurrent()" title="잠시 대기석으로 보내기" disabled>⏸️</button>
+            </div>
+            <div id="drawn-result">
+                <span>버튼을 눌러 번호를 뽑아보세요!</span>
+            </div>
+        </div>
+
+        <!-- 보류된 학생 대기석 -->
+        <div id="pending-section" class="no-print">
+            <h4>🛋️ 대기석 (클릭 시 다시 배정)</h4>
+            <div id="pending-list">
+                <!-- 동적으로 버튼 생성 -->
+            </div>
+        </div>
+
+        <!-- 인쇄 시 나타날 칠판 타이틀 -->
+        <div id="blackboard">칠판</div>
+
+        <div id="seat-grid">
+            <!-- 자바스크립트로 좌석 자동 생성됨 -->
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         모달 팝업 (자리 클릭 시)
+         ========================================== -->
+    <div class="modal-overlay" id="seat-modal">
+        <div class="modal-content">
+            <h3 id="modal-title">자리 배정</h3>
+            <div class="modal-options" id="modal-options">
+                <!-- 동적으로 버튼 생성 -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         자바스크립트 로직
+         ========================================== -->
+    <script>
+        // 전역 상태 변수
+        let cols, rows, minNum, maxNum;
+        let studentMap = {}; 
+        let availableNumbers = []; 
+        let pendingStudents = [];  
+        let currentDrawn = null;   
+        let targetSeatDiv = null;  
+        let isDrawing = false;     
+        let isGenderMode = false;  // 성별 설정 모드 활성화 여부
+
+        // 오디오 컨텍스트 (소리 효과용)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playTickSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.05);
+            
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playTadaSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
+            osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3); 
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        document.getElementById('setup-date').valueAsDate = new Date();
+
+        /**
+         * 1. 설정 완료 후 앱 시작
+         */
+        function startApp() {
+            cols = parseInt(document.getElementById('setup-cols').value) || 6;
+            rows = parseInt(document.getElementById('setup-rows').value) || 5;
+            minNum = parseInt(document.getElementById('setup-min').value) || 1;
+            maxNum = parseInt(document.getElementById('setup-max').value) || 30;
+            const rawStudents = document.getElementById('setup-students').value;
+            const dateStr = document.getElementById('setup-date').value;
+
+            parseStudents(rawStudents);
+
+            availableNumbers = [];
+            pendingStudents = [];
+            for (let i = minNum; i <= maxNum; i++) {
+                availableNumbers.push(i);
+            }
+
+            if (dateStr) {
+                const dateObj = new Date(dateStr);
+                const format = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 자리배치표`;
+                document.getElementById('display-date').textContent = format;
+            }
+
+            generateGrid();
+            updateUIState();
+
+            document.getElementById('page1').style.display = 'none';
+            document.getElementById('page2').style.display = 'flex';
+        }
+
+        function parseStudents(text) {
+            studentMap = {};
+            if (!text.trim()) return;
+
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            let autoNum = minNum;
+
+            lines.forEach(line => {
+                const match = line.match(/^(\d+)[\s.번-]+(.*)$/);
+                if (match) {
+                    const num = parseInt(match[1]);
+                    studentMap[num] = match[2].trim();
+                    autoNum = num + 1;
+                } else {
+                    studentMap[autoNum] = line;
+                    autoNum++;
+                }
+            });
+        }
+
+        /**
+         * 2. 좌석 그리드 생성
+         */
+        function generateGrid() {
+            const grid = document.getElementById('seat-grid');
+            grid.innerHTML = '';
+            
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            const totalSeats = cols * rows;
+            for (let i = 0; i < totalSeats; i++) {
+                const seat = document.createElement('div');
+                seat.className = 'seat empty';
+                seat.dataset.state = 'empty'; 
+                seat.dataset.num = '';
+                seat.dataset.gender = 'none'; // 초기 성별 상태: 공용
+                
+                seat.onclick = () => handleSeatClick(seat);
+                grid.appendChild(seat);
+            }
+        }
+
+        /**
+         * 3. 성별 설정 모드 토글 로직
+         */
+        let originalBoardText = "칠판";
+        function toggleGenderMode() {
+            isGenderMode = !isGenderMode;
+            const btn = document.getElementById('gender-setup-btn');
+            const board = document.getElementById('blackboard');
+
+            if (isGenderMode) {
+                btn.innerHTML = "✅ 설정 완료";
+                btn.style.backgroundColor = "#FF9800";
+                btn.style.color = "white";
+                
+                originalBoardText = board.textContent;
+                board.textContent = "⚙️ 좌석 성별 설정 중... (좌석을 클릭하세요)";
+                board.style.backgroundColor = "#E67E22";
+                board.style.borderColor = "#D35400";
+                
+                // 설정 중 조작 방지
+                document.getElementById('draw-btn').disabled = true;
+                document.getElementById('hold-btn').disabled = true;
+            } else {
+                btn.innerHTML = "👫 좌석 성별 설정";
+                btn.style.backgroundColor = ""; 
+                btn.style.color = "";
+                
+                board.textContent = originalBoardText;
+                board.style.backgroundColor = "";
+                board.style.borderColor = "";
+
+                updateUIState(); // 기존 상태 복구
+            }
+        }
+
+        /**
+         * 4. UI 전체 상태 동기화 (꼬임 방지 핵심 로직)
+         */
+        function updateUIState() {
+            if (isGenderMode) return; // 설정 모드일 때는 UI 업데이트 무시
+
+            const drawBtn = document.getElementById('draw-btn');
+            const holdBtn = document.getElementById('hold-btn');
+            const resultBox = document.getElementById('drawn-result');
+
+            if (availableNumbers.length === 0 && pendingStudents.length === 0 && currentDrawn === null && !isDrawing) {
+                resultBox.innerHTML = `<span class="end-message">자리 배정 끝! 🎉</span>`;
+                drawBtn.disabled = true;
+                holdBtn.disabled = true;
+                renderPendingList();
+                return;
+            }
+
+            if (isDrawing) {
+                drawBtn.disabled = true;
+                holdBtn.disabled = true;
+                renderPendingList();
+                return;
+            }
+
+            if (currentDrawn !== null) {
+                drawBtn.disabled = true;
+                holdBtn.disabled = false;
+            } else {
+                drawBtn.disabled = availableNumbers.length === 0; 
+                holdBtn.disabled = true;
+                
+                if (availableNumbers.length > 0 || pendingStudents.length > 0) {
+                    resultBox.innerHTML = `<span>다음 번호를 뽑아주세요!</span>`;
+                }
+            }
+
+            renderPendingList();
+        }
+
+        function renderPendingList() {
+            const pendingSection = document.getElementById('pending-section');
+            const pendingList = document.getElementById('pending-list');
+            
+            if (pendingStudents.length === 0) {
+                pendingSection.style.display = 'none';
+                pendingList.innerHTML = '';
+                return;
+            }
+
+            pendingSection.style.display = 'block';
+            pendingList.innerHTML = '';
+
+            pendingStudents.sort((a, b) => a - b).forEach(num => {
+                const name = studentMap[num] || "";
+                const btn = document.createElement('button');
+                btn.className = 'pending-student-btn';
+                btn.innerHTML = `⏳ ${num}번 ${name}`;
+                btn.disabled = (currentDrawn !== null || isDrawing || isGenderMode); 
+                btn.onclick = () => pickFromPending(num);
+                pendingList.appendChild(btn);
+            });
+        }
+
+        /**
+         * 5. 랜덤 번호 뽑기 로직
+         */
+        function drawNumber() {
+            initAudio(); 
+            if (isDrawing || currentDrawn !== null || availableNumbers.length === 0 || isGenderMode) return;
+
+            isDrawing = true;
+            updateUIState();
+
+            const resultBox = document.getElementById('drawn-result');
+            let ticks = 0;
+            const maxTicks = 15;
+            
+            const interval = setInterval(() => {
+                playTickSound();
+
+                const tempNum = availableNumbers[Math.floor(Math.random() * availableNumbers.length)];
+                resultBox.innerHTML = `<span class="num anim-shuffle">${tempNum}</span>`;
+                ticks++;
+
+                if (ticks >= maxTicks) {
+                    clearInterval(interval);
+                    playTadaSound();
+                    
+                    const finalIndex = Math.floor(Math.random() * availableNumbers.length);
+                    currentDrawn = availableNumbers[finalIndex];
+                    availableNumbers.splice(finalIndex, 1); 
+
+                    const name = studentMap[currentDrawn] || "";
+                    resultBox.innerHTML = `
+                        <span class="num anim-pop">${currentDrawn}</span>
+                        <span class="name anim-pop">${name}</span>
+                    `;
+                    
+                    isDrawing = false;
+                    updateUIState();
+                }
+            }, 60);
+        }
+
+        /**
+         * 6. '잠시 보류' 기능
+         */
+        function holdCurrent() {
+            if (currentDrawn === null || isDrawing || isGenderMode) return;
+            pendingStudents.push(currentDrawn);
+            currentDrawn = null;
+            updateUIState();
+        }
+
+        function pickFromPending(num) {
+            if (currentDrawn !== null || isDrawing || isGenderMode) return;
+            pendingStudents = pendingStudents.filter(n => n !== num);
+            currentDrawn = num;
+
+            const name = studentMap[currentDrawn] || "";
+            document.getElementById('drawn-result').innerHTML = `
+                <span class="num anim-pop">${currentDrawn}</span>
+                <span class="name anim-pop">${name}</span>
+            `;
+            updateUIState(); 
+        }
+
+        /**
+         * 7. 좌석 클릭 처리
+         */
+        function handleSeatClick(seatDiv) {
+            // [성별 설정 모드]일 경우: 클릭 시 성별 속성만 순환 변경
+            if (isGenderMode) {
+                const currentGender = seatDiv.dataset.gender;
+                if (currentGender === 'none') {
+                    seatDiv.dataset.gender = 'boy';
+                } else if (currentGender === 'boy') {
+                    seatDiv.dataset.gender = 'girl';
+                } else {
+                    seatDiv.dataset.gender = 'none';
+                }
+                return; // 모달을 열지 않음
+            }
+
+            // 일반 배치 모드일 경우: 기존과 동일하게 모달 열기
+            targetSeatDiv = seatDiv;
+            const modal = document.getElementById('seat-modal');
+            const optionsContainer = document.getElementById('modal-options');
+            const title = document.getElementById('modal-title');
+            optionsContainer.innerHTML = ''; 
+
+            const state = seatDiv.dataset.state;
+
+            if (state === 'empty') {
+                title.textContent = "빈 자리 설정";
+                
+                if (currentDrawn !== null) {
+                    const name = studentMap[currentDrawn] || "";
+                    const btnAssign = document.createElement('button');
+                    btnAssign.className = 'btn-start'; 
+                    btnAssign.innerHTML = `🎉 [ <b>${currentDrawn}</b>번 ${name} ] 배정하기`;
+                    btnAssign.onclick = () => assignSeat(currentDrawn, name);
+                    optionsContainer.appendChild(btnAssign);
+                } else {
+                    const msg = document.createElement('p');
+                    msg.textContent = "먼저 학생을 뽑거나 대기석에서 선택해주세요!";
+                    msg.style.color = "#888";
+                    optionsContainer.appendChild(msg);
+                }
+
+                const btnX = document.createElement('button');
+                btnX.className = 'btn-secondary';
+                btnX.innerHTML = `❌ 미사용 / 결석 (X 표시)`;
+                btnX.onclick = () => assignX();
+                optionsContainer.appendChild(btnX);
+
+            } else {
+                title.textContent = "배정 취소";
+                
+                const btnReset = document.createElement('button');
+                btnReset.className = 'btn-action';
+                btnReset.innerHTML = `🔄 빈 자리로 되돌리기 (초기화)`;
+                btnReset.onclick = () => resetSeat();
+                optionsContainer.appendChild(btnReset);
+            }
+
+            const btnCancel = document.createElement('button');
+            btnCancel.style.backgroundColor = "#ccc";
+            btnCancel.style.color = "#333";
+            btnCancel.textContent = "닫기";
+            btnCancel.onclick = () => { modal.style.display = 'none'; };
+            optionsContainer.appendChild(btnCancel);
+
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * 8. 좌석 배정/X/초기화 로직
+         */
+        function assignSeat(num, name) {
+            targetSeatDiv.dataset.state = 'assigned';
+            targetSeatDiv.dataset.num = num;
+            // 성별 속성은 건드리지 않음 (유지됨)
+            targetSeatDiv.className = 'seat assigned';
+            targetSeatDiv.innerHTML = `
+                <div class="seat-num">${num}</div>
+                <div class="seat-name">${name}</div>
+            `;
+            
+            currentDrawn = null; 
+            document.getElementById('seat-modal').style.display = 'none';
+            updateUIState(); 
+        }
+
+        function assignX() {
+            targetSeatDiv.dataset.state = 'x';
+            targetSeatDiv.className = 'seat x-seat';
+            targetSeatDiv.innerHTML = `<div class="seat-x">X</div>`;
+            document.getElementById('seat-modal').style.display = 'none';
+        }
+
+        function resetSeat() {
+            if (targetSeatDiv.dataset.state === 'assigned') {
+                const num = parseInt(targetSeatDiv.dataset.num);
+                if (!isNaN(num)) {
+                    availableNumbers.push(num); 
+                }
+            }
+            
+            targetSeatDiv.dataset.state = 'empty';
+            targetSeatDiv.dataset.num = '';
+            targetSeatDiv.className = 'seat empty';
+            targetSeatDiv.innerHTML = '';
+            document.getElementById('seat-modal').style.display = 'none';
+            
+            updateUIState(); 
+        }
+
+    </script>
+</body>
+</html>
