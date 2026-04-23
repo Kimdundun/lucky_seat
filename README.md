@@ -19,3 +19,8 @@ Change seats manager
 + 저장소 기능
 
 + 배정 완료일 때도 빵빠레 소리 나도록
+
+[v3 바로가기] https://kimdundun.github.io/lucky_seat/  
+
+https://kimdundun.github.io/lucky_seat/
+복사용 주소
