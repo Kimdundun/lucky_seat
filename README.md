@@ -20,7 +20,7 @@ Change seats manager
 
 + 배정 완료일 때도 빵빠레 소리 나도록
 
-[v3 바로가기] https://kimdundun.github.io/lucky_seat/  
+[v3 바로가기](https://kimdundun.github.io/lucky_seat/)  
 
 https://kimdundun.github.io/lucky_seat/
 복사용 주소
